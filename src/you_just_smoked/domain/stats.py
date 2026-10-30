@@ -60,20 +60,37 @@ def next_milestone(elapsed: timedelta) -> timedelta:
     return _MILESTONES[-1] * (elapsed // _MILESTONES[-1] + 1)
 
 
-def wait_goal(elapsed: timedelta, minimum: timedelta) -> timedelta:
-    """The first round goal at least `minimum` away: 16 min with a 5 min minimum -> 30 min.
+_QUARTER = timedelta(minutes=15)
 
-    The nudge offers this goal and the wait challenge counts down to it, so the two
+
+@dataclass(frozen=True, slots=True)
+class WaitWindow:
+    """How long a wait challenge may be. Too short is pointless; too long kills the will."""
+
+    shortest: timedelta = timedelta(minutes=5)
+    longest: timedelta = timedelta(minutes=25)
+
+    def __post_init__(self) -> None:
+        if self.shortest < timedelta(minutes=1):
+            raise ValueError("the shortest wait must be at least 1 minute")
+        if self.longest < self.shortest:
+            raise ValueError("the longest wait cannot be shorter than the shortest")
+
+
+def wait_goal(elapsed: timedelta, window: WaitWindow) -> timedelta:
+    """The goal the nudge offers, between `window.shortest` and `window.longest` away.
+
+    A round milestone if one falls in the window (16 min -> 30 min), otherwise the
+    next quarter hour (2 h 05 -> 2 h 15), never more than `window.longest` away.
+    The nudge names this goal and the wait challenge counts down to it, so the two
     always agree.
     """
     for milestone in _MILESTONES:
-        if milestone - elapsed >= minimum:
+        if window.shortest <= milestone - elapsed <= window.longest:
             return milestone
-    step = _MILESTONES[-1]
-    goal = step * (elapsed // step + 1)
-    while goal - elapsed < minimum:
-        goal += step
-    return goal
+    quarters = -((elapsed + window.shortest) // -_QUARTER)
+    goal = _QUARTER * quarters
+    return min(goal, elapsed + window.longest)
 
 
 def milestone_progress(elapsed: timedelta) -> tuple[timedelta, float]:

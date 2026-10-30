@@ -5,6 +5,7 @@ import pytest
 from you_just_smoked.domain.cues import Cue
 from you_just_smoked.domain.episode import Episode, Outcome
 from you_just_smoked.domain.stats import (
+    WaitWindow,
     compute_stats,
     milestone_progress,
     next_milestone,
@@ -82,16 +83,41 @@ def test_milestone_progress(elapsed: timedelta, goal: timedelta, fraction: float
     assert actual_fraction == pytest.approx(fraction)
 
 
+def minutes(value: float) -> timedelta:
+    return timedelta(minutes=value)
+
+
 @pytest.mark.parametrize(
     ("elapsed", "goal"),
     [
-        (timedelta(0), timedelta(minutes=15)),
-        (timedelta(minutes=16), timedelta(minutes=30)),
-        (timedelta(minutes=27), timedelta(minutes=45)),
-        (timedelta(minutes=55), timedelta(hours=1)),
-        (timedelta(minutes=57), timedelta(minutes=90)),
-        (timedelta(hours=23, minutes=58), timedelta(hours=48)),
+        (minutes(0), minutes(15)),
+        (minutes(16), minutes(30)),
+        (minutes(27), minutes(45)),
+        (minutes(55), minutes(60)),
+        (minutes(57), minutes(75)),
+        (minutes(70), minutes(90)),
+        (minutes(130), minutes(135)),
+        (minutes(178), minutes(195)),
+        (minutes(1438), minutes(1455)),
     ],
 )
-def test_wait_goal_is_at_least_the_minimum_away(elapsed: timedelta, goal: timedelta) -> None:
-    assert wait_goal(elapsed, timedelta(minutes=5)) == goal
+def test_wait_goal_offers_a_round_goal_within_the_window(
+    elapsed: timedelta, goal: timedelta
+) -> None:
+    assert wait_goal(elapsed, WaitWindow()) == goal
+
+
+@pytest.mark.parametrize("elapsed", [minutes(m) for m in range(0, 24 * 60, 7)])
+def test_the_wait_always_stays_within_the_window(elapsed: timedelta) -> None:
+    wait = wait_goal(elapsed, WaitWindow()) - elapsed
+    assert minutes(5) <= wait <= minutes(25)
+
+
+def test_a_narrow_window_is_respected() -> None:
+    window = WaitWindow(shortest=minutes(5), longest=minutes(8))
+    assert wait_goal(minutes(131), window) - minutes(131) <= minutes(8)
+
+
+def test_a_window_must_make_sense() -> None:
+    with pytest.raises(ValueError, match="cannot be shorter"):
+        WaitWindow(shortest=minutes(10), longest=minutes(5))

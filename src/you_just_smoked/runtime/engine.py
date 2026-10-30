@@ -21,6 +21,7 @@ from you_just_smoked.domain.sampling import (
     Situation,
     plan_sampling,
 )
+from you_just_smoked.domain.stats import WaitWindow
 from you_just_smoked.domain.summary import Summary, summarize
 from you_just_smoked.notify.messages import nudge_text
 from you_just_smoked.perception.frame import Frame
@@ -60,7 +61,7 @@ class EngineDeps:
     clock: Clock
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
     language: str = "en"
-    minimum_wait: timedelta = timedelta(minutes=5)
+    wait: WaitWindow = field(default_factory=WaitWindow)
     on_status: Callable[[Status], None] = lambda _status: None
     commands: queue.Queue[Command] = field(default_factory=queue.Queue)
     """Inbox shared with other threads. Pass your own to submit before the engine exists."""
@@ -198,8 +199,7 @@ class Engine:
     def _nudge(self, started_at: datetime) -> None:
         now = self._deps.clock.now()
         stats = self._summary(now).stats
-        minimum = self._deps.minimum_wait
-        text = nudge_text(stats, now, self._deps.language, minimum_wait=minimum)
+        text = nudge_text(stats, now, self._deps.language, window=self._deps.wait)
 
         def on_answer(answer: Answer) -> None:
             self.submit(AnswerNudge(started_at, answer))

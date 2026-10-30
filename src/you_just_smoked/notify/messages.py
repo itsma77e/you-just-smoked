@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
-from you_just_smoked.domain.stats import wait_goal
+from you_just_smoked.domain.stats import WaitWindow, wait_goal
 from you_just_smoked.i18n import format_duration, text
 
 if TYPE_CHECKING:
@@ -26,9 +26,9 @@ class NudgeText:
     """How long "I'll wait" counts down: exactly until the goal named in `body`."""
 
 
-def nudge_text(stats: Stats, now: datetime, language: str, *, minimum_wait: timedelta) -> NudgeText:
+def nudge_text(stats: Stats, now: datetime, language: str, *, window: WaitWindow) -> NudgeText:
     elapsed = stats.since_last(now) or timedelta(0)
-    goal = wait_goal(elapsed, minimum_wait)
+    goal = wait_goal(elapsed, window)
     if stats.last_cigarette_at is None:
         title, body = text("title_first", language), text("body_first", language)
     else:

@@ -17,7 +17,7 @@ Nothing, while you work. There is only a small icon by the clock.
   - how long ago your last one was;
   - how many you have had today;
   - the choice between **I'll wait**, **Smoking anyway** and **Not smoking**.
-- **I'll wait** turns the card into a countdown to the goal it offered ("16 min ago, can you make it to 30?" counts down 14 minutes), with small tips: a glass of water, three deep breaths...
+- **I'll wait** turns the card into a countdown to the goal it offered ("16 min ago, can you make it to 30?" counts down 14 minutes; never more than 25), with small tips: a glass of water, three deep breaths...
   - **Hide** folds it into a small tab on the screen edge that keeps showing the time left. Click the tab to open it again.
   - When time is up it chimes, comes back by itself and celebrates the minutes you gained.
 - **The tray icon** shows today's numbers. From its menu you can:

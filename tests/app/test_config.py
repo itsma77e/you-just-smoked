@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from you_just_smoked.app.config import Config, ConfigError, load_config, parse_config
+from you_just_smoked.domain.stats import WaitWindow
 
 
 def test_missing_file_gives_defaults(tmp_path: Path) -> None:
@@ -29,6 +30,7 @@ def test_reads_every_section(tmp_path: Path) -> None:
 
         [nudge]
         min_wait_minutes = 3
+        max_wait_minutes = 20
         sound = false
 
         [objects]
@@ -44,7 +46,7 @@ def test_reads_every_section(tmp_path: Path) -> None:
     assert config.sampling.idle_interval == timedelta(seconds=30)
     assert config.tracker.threshold == 1.5
     assert config.tracker.quiet_period == timedelta(minutes=8)
-    assert config.min_wait_minutes == 3
+    assert config.wait == WaitWindow(timedelta(minutes=3), timedelta(minutes=20))
     assert not config.sound
     assert config.objects is not None
     assert config.objects.model.name == "smoking.tflite"
@@ -64,7 +66,8 @@ def test_integers_are_accepted_where_floats_are_expected() -> None:
         ({"camera": {"keep_open": 1}}, "camera.keep_open must be bool"),
         ({"camera": {"index": True}}, "camera.index must be int"),
         ({"camera": 3}, r"\[camera\] must be a table"),
-        ({"nudge": {"min_wait_minutes": 0}}, "at least 1"),
+        ({"nudge": {"min_wait_minutes": 0}}, "at least 1 minute"),
+        ({"nudge": {"max_wait_minutes": 2}}, "cannot be shorter"),
     ],
 )
 def test_rejects_mistakes_loudly(data: dict[str, object], message: str) -> None:

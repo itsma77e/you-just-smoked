@@ -1,12 +1,12 @@
 from datetime import timedelta
 
-from you_just_smoked.domain.stats import Stats
+from you_just_smoked.domain.stats import Stats, WaitWindow
 from you_just_smoked.notify.messages import nudge_text, status_lines
 
 from factories import at
 
 NOW = at(0)
-FIVE = timedelta(minutes=5)
+WINDOW = WaitWindow()
 
 
 def stats(
@@ -23,7 +23,7 @@ def stats(
 
 
 def test_nudge_mentions_time_since_last_count_and_next_goal() -> None:
-    text = nudge_text(stats(), NOW, "en", minimum_wait=FIVE)
+    text = nudge_text(stats(), NOW, "en", window=WINDOW)
     assert text.title == "Your last one was 47 min ago"
     assert text.body == "6 today. Can you make it to 1 h?"
     assert text.wait_for == timedelta(minutes=13)
@@ -35,21 +35,21 @@ def test_nudge_mentions_time_since_last_count_and_next_goal() -> None:
 
 
 def test_nudge_in_italian() -> None:
-    text = nudge_text(stats(), NOW, "it", minimum_wait=FIVE)
+    text = nudge_text(stats(), NOW, "it", window=WINDOW)
     assert text.title == "L'ultima è stata 47 min fa"
     assert text.body == "Oggi sono 6. Arrivi a 1 h?"
 
 
 def test_nudge_when_nothing_is_logged_yet() -> None:
-    text = nudge_text(stats(minutes_ago=None, today=0), NOW, "en", minimum_wait=FIVE)
+    text = nudge_text(stats(minutes_ago=None, today=0), NOW, "en", window=WINDOW)
     assert text.title == "About to smoke?"
     assert text.wait_for == timedelta(minutes=15)
 
 
 def test_goal_and_countdown_agree_when_the_next_goal_is_too_close() -> None:
-    text = nudge_text(stats(minutes_ago=57), NOW, "en", minimum_wait=FIVE)
-    assert text.body == "6 today. Can you make it to 1 h 30 min?"
-    assert text.wait_for == timedelta(minutes=33)
+    text = nudge_text(stats(minutes_ago=57), NOW, "en", window=WINDOW)
+    assert text.body == "6 today. Can you make it to 1 h 15 min?"
+    assert text.wait_for == timedelta(minutes=18)
 
 
 def test_status_shows_wins_only_when_there_are_any() -> None:

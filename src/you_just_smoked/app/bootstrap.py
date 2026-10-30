@@ -13,7 +13,6 @@ import queue
 import threading
 from contextlib import ExitStack
 from dataclasses import dataclass
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from you_just_smoked.app.paths import APP_NAME
@@ -119,7 +118,7 @@ def _run_engine(config: Config, paths: AppPaths, shared: _Shared) -> None:
                 clock=SystemClock(),
                 sampling=config.sampling,
                 language=shared.language,
-                minimum_wait=timedelta(minutes=config.min_wait_minutes),
+                wait=config.wait,
                 on_status=shared.on_status,
                 commands=shared.commands,
             )

@@ -12,6 +12,7 @@ from typing import Any, TypeVar
 
 from you_just_smoked.capture.camera import CameraSettings
 from you_just_smoked.domain.sampling import SamplingSettings
+from you_just_smoked.domain.stats import WaitWindow
 from you_just_smoked.domain.tracker import TrackerSettings
 
 T = TypeVar("T")
@@ -33,8 +34,8 @@ class Config:
     camera: CameraSettings = field(default_factory=CameraSettings)
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
     tracker: TrackerSettings = field(default_factory=TrackerSettings)
-    min_wait_minutes: int = 5
-    """Shortest wait challenge: the goal offered by the nudge is at least this far away."""
+    wait: WaitWindow = field(default_factory=WaitWindow)
+    """How far away the goal offered by the nudge may be."""
 
     sound: bool = True
 
@@ -77,15 +78,22 @@ def parse_config(data: dict[str, Any]) -> Config:
             quiet_period=_minutes(episode.get("quiet_minutes", float, 6)),
             refractory_period=_minutes(episode.get("refractory_minutes", float, 5)),
         ),
-        min_wait_minutes=nudge.get("min_wait_minutes", int, 5),
+        wait=_wait_window(nudge),
         sound=nudge.get("sound", bool, True),
         objects=_objects(objects),
     )
-    if config.min_wait_minutes < 1:
-        raise ConfigError("nudge.min_wait_minutes must be at least 1")
     for table in (root, camera, sampling, episode, nudge, objects):
         table.reject_unknown()
     return config
+
+
+def _wait_window(table: _Table) -> WaitWindow:
+    shortest = table.get("min_wait_minutes", float, 5)
+    longest = table.get("max_wait_minutes", float, 25)
+    try:
+        return WaitWindow(_minutes(shortest), _minutes(longest))
+    except ValueError as error:
+        raise ConfigError(f"[nudge] {error}") from error
 
 
 def _objects(table: _Table) -> ObjectsConfig | None:
