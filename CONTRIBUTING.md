@@ -28,7 +28,7 @@ pytest
 - **Test without hardware.** Use hand-written landmarks (`tests/factories.py`) or synthetic images, and the fakes in `tests/fakes.py` for the engine.
 - **Privacy is a feature.** Never write frames to disk or send anything over the network. An opt-in dataset collector must be explicit, local and off by default.
 - **Be kind in the copy.** Messages encourage waiting; they never shame.
-- **Translations:** add a language to `notify/messages.py`. A test checks that every key is present.
+- **Translations:** copy `i18n/en.py` and register the new file in `i18n/__init__.py`. A test checks that every key and placeholder is present.
 
 ## Reporting false alarms or misses
 

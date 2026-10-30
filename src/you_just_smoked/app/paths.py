@@ -12,6 +12,7 @@ APP_NAME = "you-just-smoked"
 class AppPaths:
     config_file: Path
     database: Path
+    widget_position: Path
     models: Path
     log_file: Path
 
@@ -21,6 +22,7 @@ class AppPaths:
         return cls(
             config_file=Path(dirs.user_config_dir) / "config.toml",
             database=Path(dirs.user_data_dir) / "episodes.sqlite3",
+            widget_position=Path(dirs.user_data_dir) / "widget.json",
             models=Path(dirs.user_cache_dir) / "models",
             log_file=Path(dirs.user_log_dir) / "you-just-smoked.log",
         )

@@ -4,6 +4,7 @@ from you_just_smoked.domain.sampling import (
     CaptureMode,
     Presence,
     SamplingSettings,
+    Situation,
     plan_sampling,
 )
 from you_just_smoked.domain.tracker import Phase
@@ -11,27 +12,38 @@ from you_just_smoked.domain.tracker import Phase
 SETTINGS = SamplingSettings()
 
 
+STREAM = SETTINGS.stream_interval
+ACTIVE = SETTINGS.active_interval
+AWAY = SETTINGS.away_interval
+IDLE = SETTINGS.idle_interval
+
+
 @pytest.mark.parametrize(
-    ("phase", "suspicion", "paused", "away", "mode", "interval"),
+    ("phase", "suspicion", "flags", "mode", "interval"),
     [
-        (Phase.IDLE, 0.0, False, False, CaptureMode.SNAPSHOT, SETTINGS.idle_interval),
-        (Phase.IDLE, 0.0, False, True, CaptureMode.SNAPSHOT, SETTINGS.away_interval),
-        (Phase.IDLE, 0.5, False, True, CaptureMode.STREAM, SETTINGS.stream_interval),
-        (Phase.ACTIVE, 0.0, False, False, CaptureMode.SNAPSHOT, SETTINGS.active_interval),
-        (Phase.POSTPONED, 0.5, False, False, CaptureMode.STREAM, SETTINGS.stream_interval),
-        (Phase.REFRACTORY, 0.0, False, False, CaptureMode.OFF, SETTINGS.active_interval),
-        (Phase.IDLE, 0.9, True, False, CaptureMode.OFF, SETTINGS.active_interval),
+        (Phase.IDLE, 0.0, "", CaptureMode.SNAPSHOT, IDLE),
+        (Phase.IDLE, 0.0, "away", CaptureMode.SNAPSHOT, AWAY),
+        (Phase.IDLE, 0.5, "away", CaptureMode.STREAM, STREAM),
+        (Phase.IDLE, 0.0, "attentive", CaptureMode.STREAM, STREAM),
+        (Phase.ACTIVE, 0.0, "", CaptureMode.SNAPSHOT, ACTIVE),
+        (Phase.ACTIVE, 0.0, "attentive", CaptureMode.SNAPSHOT, ACTIVE),
+        (Phase.POSTPONED, 0.5, "", CaptureMode.STREAM, STREAM),
+        (Phase.POSTPONED, 0.0, "attentive", CaptureMode.STREAM, STREAM),
+        (Phase.REFRACTORY, 0.0, "attentive", CaptureMode.OFF, ACTIVE),
+        (Phase.IDLE, 0.9, "paused", CaptureMode.OFF, ACTIVE),
     ],
 )
 def test_plan(
-    phase: Phase,
-    suspicion: float,
-    paused: bool,
-    away: bool,
-    mode: CaptureMode,
-    interval: object,
+    phase: Phase, suspicion: float, flags: str, mode: CaptureMode, interval: object
 ) -> None:
-    plan = plan_sampling(phase, suspicion, paused=paused, away=away, settings=SETTINGS)
+    situation = Situation(
+        phase,
+        suspicion,
+        paused="paused" in flags,
+        away="away" in flags,
+        attentive="attentive" in flags,
+    )
+    plan = plan_sampling(situation, SETTINGS)
     assert plan.mode is mode
     assert plan.interval == interval
 

@@ -23,11 +23,11 @@ class EvidenceSettings:
     weights: Mapping[Cue, float] = field(
         default_factory=lambda: MappingProxyType(
             {
-                Cue.ROLLING: 0.35,
+                Cue.ROLLING: 0.45,
                 Cue.LIGHTER: 0.5,
                 Cue.PACK: 0.4,
                 Cue.CIGARETTE: 0.6,
-                Cue.FLAME: 0.9,
+                Cue.FLAME: 1.35,
                 Cue.PUFF: 0.45,
             }
         )

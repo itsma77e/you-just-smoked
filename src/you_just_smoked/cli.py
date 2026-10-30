@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import multiprocessing
 import sys
 from collections.abc import Callable, Sequence
 
@@ -17,6 +18,7 @@ Command = Callable[[Config, AppPaths], None]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    multiprocessing.freeze_support()
     args = _parser().parse_args(argv)
     paths = AppPaths.default()
     try:
@@ -28,7 +30,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if command is not _paths:
         quiet_native_logs()
         configure_logging(paths.log_file, verbose=args.verbose)
-    command(config, paths)
+    try:
+        command(config, paths)
+    except KeyboardInterrupt:
+        return 130
     return 0
 
 
@@ -65,16 +70,17 @@ def _preview(config: Config, paths: AppPaths) -> None:
 
 
 def _status(config: Config, paths: AppPaths) -> None:
-    from you_just_smoked.notify.messages import resolve_language, status_lines  # noqa: PLC0415
+    from you_just_smoked.domain.stats import compute_stats  # noqa: PLC0415
+    from you_just_smoked.i18n import resolve_language  # noqa: PLC0415
+    from you_just_smoked.notify.messages import status_lines  # noqa: PLC0415
     from you_just_smoked.runtime.clock import SystemClock  # noqa: PLC0415
-    from you_just_smoked.runtime.stats import load_stats  # noqa: PLC0415
     from you_just_smoked.storage.database import connect  # noqa: PLC0415
     from you_just_smoked.storage.episodes import EpisodeRepository  # noqa: PLC0415
 
     now = SystemClock().now()
     connection = connect(paths.database)
     try:
-        stats = load_stats(EpisodeRepository(connection), now=now, session_start=now)
+        stats = compute_stats(EpisodeRepository(connection).all(), now=now, session_start=now)
     finally:
         connection.close()
     for line in status_lines(stats, now, resolve_language(config.language)):

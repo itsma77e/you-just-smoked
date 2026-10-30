@@ -1,7 +1,9 @@
 """A hand at the mouth with two fingertips pinched together, as when holding a cigarette.
 
-Drinking and nail biting look similar in a single frame. That is fine: a puff
-alone never opens an episode, it takes several of them close together.
+A puff is a movement: the hand comes to the mouth and leaves. So only the frame
+where the hand *arrives* counts. A hand resting there (chin on hand, thinking)
+counts once, not on every frame. Drinking and nail biting still look similar,
+which is fine: a puff alone never opens an episode, it takes several of them.
 """
 
 from __future__ import annotations
@@ -30,6 +32,7 @@ class PuffSettings:
 class PuffDetector:
     def __init__(self, settings: PuffSettings | None = None) -> None:
         self._settings = settings or PuffSettings()
+        self._was_at_mouth = False
 
     def close(self) -> None:
         pass
@@ -37,9 +40,12 @@ class PuffDetector:
     def detect(self, frame: Frame, scene: Scene) -> list[CueObservation]:
         face = scene.face
         if face is None:
+            self._was_at_mouth = False
             return []
         strength = max((self._strength(hand, face) for hand in scene.hands), default=0.0)
-        if strength <= 0.0:
+        arrived = strength > 0.0 and not self._was_at_mouth
+        self._was_at_mouth = strength > 0.0
+        if not arrived:
             return []
         return [CueObservation(Cue.PUFF, 0.5 + 0.5 * strength, frame.at)]
 

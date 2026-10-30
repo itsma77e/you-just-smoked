@@ -33,6 +33,11 @@ class Config:
     camera: CameraSettings = field(default_factory=CameraSettings)
     sampling: SamplingSettings = field(default_factory=SamplingSettings)
     tracker: TrackerSettings = field(default_factory=TrackerSettings)
+    min_wait_minutes: int = 5
+    """Shortest wait challenge: the goal offered by the nudge is at least this far away."""
+
+    sound: bool = True
+
     objects: ObjectsConfig | None = None
 
 
@@ -51,6 +56,7 @@ def parse_config(data: dict[str, Any]) -> Config:
     camera = root.table("camera")
     sampling = root.table("sampling")
     episode = root.table("episode")
+    nudge = root.table("nudge")
     objects = root.table("objects")
     config = Config(
         language=root.get("language", str, "auto"),
@@ -71,9 +77,13 @@ def parse_config(data: dict[str, Any]) -> Config:
             quiet_period=_minutes(episode.get("quiet_minutes", float, 6)),
             refractory_period=_minutes(episode.get("refractory_minutes", float, 5)),
         ),
+        min_wait_minutes=nudge.get("min_wait_minutes", int, 5),
+        sound=nudge.get("sound", bool, True),
         objects=_objects(objects),
     )
-    for table in (root, camera, sampling, episode, objects):
+    if config.min_wait_minutes < 1:
+        raise ConfigError("nudge.min_wait_minutes must be at least 1")
+    for table in (root, camera, sampling, episode, nudge, objects):
         table.reject_unknown()
     return config
 

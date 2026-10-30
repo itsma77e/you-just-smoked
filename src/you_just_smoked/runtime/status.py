@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from you_just_smoked.domain.stats import Stats
+    from you_just_smoked.domain.summary import Summary
     from you_just_smoked.domain.tracker import Phase
 
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class Status:
     at: datetime
     phase: Phase
-    stats: Stats
+    summary: Summary
     paused_until: datetime | None = None
     camera_error: str | None = None
 

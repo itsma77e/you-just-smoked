@@ -27,6 +27,10 @@ def test_reads_every_section(tmp_path: Path) -> None:
         threshold = 1.5
         quiet_minutes = 8
 
+        [nudge]
+        min_wait_minutes = 3
+        sound = false
+
         [objects]
         model = "~/models/smoking.tflite"
         min_score = 0.6
@@ -40,6 +44,8 @@ def test_reads_every_section(tmp_path: Path) -> None:
     assert config.sampling.idle_interval == timedelta(seconds=30)
     assert config.tracker.threshold == 1.5
     assert config.tracker.quiet_period == timedelta(minutes=8)
+    assert config.min_wait_minutes == 3
+    assert not config.sound
     assert config.objects is not None
     assert config.objects.model.name == "smoking.tflite"
     assert config.objects.min_score == 0.6
@@ -58,6 +64,7 @@ def test_integers_are_accepted_where_floats_are_expected() -> None:
         ({"camera": {"keep_open": 1}}, "camera.keep_open must be bool"),
         ({"camera": {"index": True}}, "camera.index must be int"),
         ({"camera": 3}, r"\[camera\] must be a table"),
+        ({"nudge": {"min_wait_minutes": 0}}, "at least 1"),
     ],
 )
 def test_rejects_mistakes_loudly(data: dict[str, object], message: str) -> None:

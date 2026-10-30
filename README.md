@@ -9,6 +9,24 @@ A local webcam companion that notices when you're about to smoke (rolling, light
 
 It does not try to make you quit. It tries to buy you a little time between cigarettes, because a few minutes, many times a day, add up.
 
+## What you see
+
+Nothing, while you work. There is only a small icon by the clock.
+
+- **When you're about to smoke** (rolling in front of the camera, or bringing a lighter or flame to your face), a card slides in once, with a chime:
+  - how long ago your last one was;
+  - how many you have had today;
+  - the choice between **I'll wait**, **Smoking anyway** and **Not smoking**.
+- **I'll wait** turns the card into a countdown to the goal it offered ("16 min ago, can you make it to 30?" counts down 14 minutes), with small tips: a glass of water, three deep breaths...
+  - **Hide** folds it into a small tab on the screen edge that keeps showing the time left. Click the tab to open it again.
+  - When time is up it chimes, comes back by itself and celebrates the minutes you gained.
+- **The tray icon** shows today's numbers. From its menu you can:
+  - open the **statistics** card: live timer, week chart, longest gap, achievements;
+  - log a cigarette it missed;
+  - pause it for an hour;
+  - quit.
+- **Achievements:** first wait, first one skipped, one hour clear, two hours clear, 30 minutes gained, three skipped in a day, fewer than the day before.
+
 ## How it works
 
 ```
@@ -20,7 +38,7 @@ It does not try to make you quit. It tries to buy you a little time between ciga
 ```
 
 - **Many cues, one decision.** Rolling, a flame near your face, a hand at your mouth: each cue only adds evidence, and evidence fades within about a minute. A single glimpse means nothing. Several cues close together open an **episode**.
-- **One nudge per cigarette.** Only opening an episode sends a notification. Lighting up, puffing and everything else that follows just refines the same episode, and then a short quiet period stops one long cigarette from counting twice.
+- **One nudge per cigarette.** Only opening an episode shows the nudge. Lighting up, puffing and everything else that follows just refines the same episode, and then a short quiet period stops one long cigarette from counting twice.
 - **Your answer matters.**
   - **I'll wait:** the episode is put on hold. If you light up later, it is logged with the time you held off. If you don't, it is logged as resisted.
   - **Smoking anyway:** nothing else bothers you.
@@ -37,7 +55,7 @@ The full design is in [docs/architecture.md](docs/architecture.md) and the cue h
 
 ## Install
 
-Requires Python 3.11 or newer, on Windows, macOS (Apple Silicon) or Linux (x86-64 or arm64).
+Requires Python 3.11 or newer, on Windows, macOS (Apple Silicon) or Linux (x86-64 or arm64). On Linux, install Tk too (`sudo apt install python3-tk`); window corners are square there.
 
 ```bash
 git clone https://github.com/itsma77e/you-just-smoked.git
@@ -54,13 +72,13 @@ pip install -e .
 ## Use
 
 ```bash
-you-just-smoked            # start in the system tray
+you-just-smoked            # start watching, with an icon in the tray
 you-just-smoked preview    # live window: landmarks, cues and tracker state
 you-just-smoked status     # today's numbers
 you-just-smoked paths      # where config, data and logs live
 ```
 
-The tray menu shows your numbers, has an **I just smoked** button for cigarettes it missed (smoking outside, for example), and lets you pause it for an hour.
+Use **I just smoked** in the tray menu for cigarettes it could not see (smoking outside, for example).
 
 Run `preview` once to check that your hands are in frame when you roll. Most laptop cameras only see your face, so raising the screen or tilting it down a little helps a lot.
 
@@ -83,8 +101,11 @@ These are heuristics, so expect some false alarms at first. Answering **Not smok
 
 Measured on a Windows laptop, idle at the desk:
 
-- **CPU:** about 5% of one core on average. Almost all of it is opening and closing the camera; analysing a frame takes about 25 ms.
-- **Memory:** about 200 MB, mostly the MediaPipe runtime.
+- **CPU:** about 4% of one core on average. Most of it is opening and closing the camera; analysing a frame takes about 25 ms.
+- **Memory:** about 270 MB in total.
+  - Most of it is the MediaPipe runtime.
+  - The interface is plain Tk drawn with Pillow (about 20 MB), not a web view (about 280 MB).
+  - The camera runs in a small helper process. Windows leaks a few MB every time a webcam is opened, so the helper is restarted every 20 opens and the app's memory stays flat.
 
 If you don't mind the camera light staying on, `keep_open = true` makes snapshots cheaper.
 

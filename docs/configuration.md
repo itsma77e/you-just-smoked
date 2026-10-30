@@ -26,6 +26,10 @@ threshold = 1.0          # evidence needed to open an episode; higher = fewer fa
 quiet_minutes = 6        # no cues for this long ends an episode
 refractory_minutes = 5   # cues are ignored for this long after an episode
 
+[nudge]
+min_wait_minutes = 5  # the goal offered by the nudge is at least this far away
+sound = true          # chime when the nudge appears and when the wait is over
+
 [objects]
 # model = "~/models/smoking-objects.tflite"
 # min_score = 0.5

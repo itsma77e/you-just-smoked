@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
+from you_just_smoked.capture.camera import CameraSettings
 from you_just_smoked.domain.cues import Cue, CueObservation
 from you_just_smoked.domain.episode import Answer, Episode
 from you_just_smoked.domain.sampling import CaptureMode
@@ -50,20 +51,20 @@ class FakeCamera:
 
 
 class ScriptedPerceiver:
-    """Sees the queued cues, one batch per frame; an empty scene once the script runs out."""
+    """Sees the queued scenes and cues, one per frame; an empty scene once the script runs out."""
 
     def __init__(self) -> None:
-        self.script: deque[list[Cue]] = deque()
+        self.script: deque[tuple[Scene, list[Cue]]] = deque()
 
-    def show(self, *cues: Cue) -> None:
-        self.script.append(list(cues))
+    def show(self, *cues: Cue, scene: Scene | None = None) -> None:
+        self.script.append((scene or Scene(face=face()), list(cues)))
 
     def perceive(self, frame: Frame) -> Perception:
         if not self.script:
             return Perception(Scene(), [])
-        cues = self.script.popleft()
+        scene, cues = self.script.popleft()
         observations = [CueObservation(cue, 1.0, frame.at) for cue in cues]
-        return Perception(Scene(face=face()), observations)
+        return Perception(scene, observations)
 
 
 class InMemoryEpisodes:
@@ -73,12 +74,8 @@ class InMemoryEpisodes:
     def add(self, episode: Episode) -> None:
         self.episodes.append(episode)
 
-    def ended_since(self, moment: datetime) -> list[Episode]:
-        return [e for e in self.episodes if e.ended_at >= moment]
-
-    def last_cigarette_at(self) -> datetime | None:
-        smoked = [e.ended_at for e in self.episodes if e.counts_as_cigarette]
-        return max(smoked, default=None)
+    def all(self) -> list[Episode]:
+        return sorted(self.episodes, key=lambda e: e.ended_at)
 
 
 class RecordingNotifier:
@@ -93,3 +90,22 @@ class RecordingNotifier:
 
     def close(self) -> None:
         pass
+
+
+class StubCamera:
+    """A `Camera` for the helper process. Camera index 99 cannot be opened."""
+
+    def __init__(self, settings: CameraSettings) -> None:
+        self._settings = settings
+        self.is_open = False
+
+    def open(self) -> None:
+        if self._settings.index == 99:
+            raise CameraUnavailableError("no such camera")
+        self.is_open = True
+
+    def read(self) -> Image:
+        return np.full((4, 4, 3), 7, dtype=np.uint8)
+
+    def close(self) -> None:
+        self.is_open = False

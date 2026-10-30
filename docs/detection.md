@@ -8,7 +8,7 @@ behave the same whether you sit close to the camera or far from it.
 - **Fires when:** two hands are visible, both wrists are below the mouth, and the thumb, index or middle fingertips of one hand are within about 0.6 face widths of the other hand's.
 - **Typing** is excluded because the hands are too far apart.
 - **Resting your chin** is excluded because the hands are above the mouth.
-- **Clasped hands** still pass a single frame. That is why rolling has a low weight and must be seen for roughly 15–20 seconds before an episode opens.
+- **Clasped hands** still pass a single frame. That is why rolling must be seen for roughly 10 seconds before an episode opens.
 
 ## Flame (`perception/cues/flame.py`)
 
@@ -24,7 +24,8 @@ If more than 8% of the frame is clipped, the exposure is useless and the frame i
 ## Puff (`perception/cues/puff.py`)
 
 - **Fires when:** two fingertips are pinched together, as if holding something thin, within half a face width of the mouth.
-- **Confounders:** drinking and nail biting look similar in one frame, so a puff alone never opens an episode.
+- **Movement, not position:** only the frame where the hand arrives at the mouth counts. A hand resting there (chin on hand) counts once, however long it stays.
+- **Confounders:** drinking and nail biting look similar, so a puff alone never opens an episode.
 
 ## Objects (`perception/cues/objects.py`, optional)
 
@@ -36,15 +37,16 @@ If more than 8% of the frame is clipped, the exposure is useless and the frame i
 
 | Cue | Weight | Counts as consumption |
 |---|---|---|
-| rolling | 0.35 | no |
+| rolling | 0.45 | no |
 | lighter | 0.5 | no |
 | pack | 0.4 | no |
 | cigarette | 0.6 | yes |
-| flame | 0.9 | yes |
+| flame | 1.35 | yes |
 | puff | 0.45 | yes |
 
 - **Threshold:** an episode opens at 1.0.
-- **Examples:** a flame plus a puff a few seconds later is enough; so is about 20 seconds of rolling.
+- **Examples:** a single clear flame near the face is enough on its own; so is about 10 seconds of rolling.
+- **Attention:** when a snapshot sees a hand near the face, the camera streams for 20 seconds, so the few seconds of lighting up are not missed between snapshots.
 - **Changing them:** the weights live in `domain/evidence.py`.
 
 ## Tuning

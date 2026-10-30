@@ -8,10 +8,11 @@ a small adapter behind a protocol.
 src/you_just_smoked/
 ├── domain/        pure logic: cues, evidence, episode tracker, stats, sampling policy
 ├── perception/    frame -> scene (MediaPipe) -> cue observations (one detector per cue)
-├── capture/       webcam adapter and the open/close policy
+├── capture/       webcam adapter, open/close policy, recycled helper process
 ├── storage/       SQLite episode log with numbered migrations
-├── notify/        user-facing text (en, it) and native notifications with buttons
-├── ui/            tray icon and menu
+├── i18n/          interface text, one file per language
+├── notify/        the nudge port and the text built from the numbers
+├── ui/            tray icon, nudge popup, wait challenge, statistics card (Tk + Pillow)
 ├── runtime/       the engine loop, its commands, ports and published status
 ├── app/           config, file locations, composition root, preview window
 └── cli.py         entry point
@@ -52,9 +53,12 @@ IDLE ──evidence ≥ threshold──▶ ACTIVE ──quiet──▶ REFRACTOR
 
 ## Threads
 
-- **Main thread:** the tray (macOS requires it).
+- **Main thread:** the Tk interface (Tk requires it).
 - **Engine thread:** creates and owns everything stateful — database, models and camera. Nothing stateful is shared.
-- **How they talk:** the tray and the notification buttons only put commands on a queue. The engine publishes an immutable `Status` that the tray renders.
+- **How they talk:** through two queues.
+  - **Engine → interface:** the engine posts an immutable `Status` and nudge requests, and the Tk loop drains them every 100 ms.
+  - **Interface → engine:** buttons and the menu put commands on the engine's queue.
+- **Pure view models:** what the card shows is computed by pure view models (`ui/viewmodel.py`), so it is tested without a display.
 
 ## Testing
 

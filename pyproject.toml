@@ -25,9 +25,8 @@ classifiers = [
 dependencies = [
     "mediapipe==1.1.1",
     "numpy>=2.0,<3",
-    "desktop-notifier==6.2.0",
-    "pystray==0.19.5",
     "pillow>=11,<14",
+    "pystray==0.19.5",
     "platformdirs>=4.3,<5",
 ]
 

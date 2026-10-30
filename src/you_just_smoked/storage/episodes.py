@@ -33,18 +33,9 @@ class EpisodeRepository:
                 ),
             )
 
-    def ended_since(self, moment: datetime) -> list[Episode]:
-        rows = self._db.execute(
-            f"SELECT {_COLUMNS} FROM episodes WHERE ended_at >= ? ORDER BY ended_at",
-            (_encode(moment),),
-        )
+    def all(self) -> list[Episode]:
+        rows = self._db.execute(f"SELECT {_COLUMNS} FROM episodes ORDER BY ended_at")
         return [_decode_row(row) for row in rows]
-
-    def last_cigarette_at(self) -> datetime | None:
-        (value,) = self._db.execute(
-            "SELECT MAX(ended_at) FROM episodes WHERE outcome = ?", (Outcome.SMOKED.value,)
-        ).fetchone()
-        return _decode(value) if value else None
 
 
 def _encode(moment: datetime) -> str:

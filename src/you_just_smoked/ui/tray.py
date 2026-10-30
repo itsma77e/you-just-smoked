@@ -1,66 +1,62 @@
-"""pystray adapter. Runs on the main thread (macOS requires it) and only talks to the
-engine through commands; it renders whatever `Status` the engine last published.
+"""The tray icon: the app's only permanent presence on screen.
+
+pystray runs its own loop on a background thread. Its callbacks never touch Tk;
+they only call the actions given here, which post messages or engine commands.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import Any
 
 import pystray
 
-from you_just_smoked.notify.messages import phrase, status_lines
-from you_just_smoked.runtime.commands import Command, LogCigarette, Pause, Resume, Stop
+from you_just_smoked.i18n import text
 from you_just_smoked.ui.icon import draw_icon
 
-if TYPE_CHECKING:
-    from you_just_smoked.runtime.status import Status
+_STATUS_LINES = 4
 
-_PAUSE = timedelta(hours=1)
+
+@dataclass(frozen=True, slots=True)
+class TrayActions:
+    show_stats: Callable[[], None]
+    log_cigarette: Callable[[], None]
+    pause: Callable[[], None]
+    resume: Callable[[], None]
+    quit: Callable[[], None]
 
 
 class Tray:
-    def __init__(self, name: str, submit: Callable[[Command], None], language: str) -> None:
-        self._submit = submit
+    def __init__(self, name: str, actions: TrayActions, language: str) -> None:
+        self._actions = actions
         self._language = language
         self._lines: list[str] = []
         self._paused = False
         self._icon: Any = pystray.Icon(name, draw_icon(), name, menu=self._menu())
 
-    def run(self, setup: Callable[[], None]) -> None:
-        """Block on the tray loop. `setup` runs once the icon is visible."""
-
-        def on_ready(icon: Any) -> None:
-            icon.visible = True
-            setup()
-
-        self._icon.run(setup=on_ready)
+    def start(self) -> None:
+        self._icon.run_detached()
 
     def stop(self) -> None:
         self._icon.stop()
 
-    def show(self, status: Status) -> None:
-        """Called from the engine thread with each new status; redraws only on change."""
-        lines = self._render(status)
+    def update(self, lines: list[str], *, paused: bool) -> None:
+        """Refresh the tooltip, the status lines and the pause entry; cheap when unchanged."""
         if lines != self._lines:
             self._lines = lines
             self._icon.title = " · ".join(lines)
             self._icon.update_menu()
-        if status.paused != self._paused:
-            self._paused = status.paused
-            self._icon.icon = draw_icon(paused=status.paused)
-
-    def _render(self, status: Status) -> list[str]:
-        lines = status_lines(status.stats, status.at, self._language)
-        if status.paused:
-            lines.insert(0, phrase("status_paused", self._language))
-        if status.camera_error:
-            lines.insert(0, phrase("status_camera", self._language))
-        return lines
+        if paused != self._paused:
+            self._paused = paused
+            self._icon.icon = draw_icon(paused=paused)
+            self._icon.update_menu()
 
     def _menu(self) -> Any:
-        def line(index: int) -> pystray.MenuItem:
+        def label(key: str) -> str:
+            return text(key, self._language)
+
+        def status_line(index: int) -> pystray.MenuItem:
             return pystray.MenuItem(
                 lambda _item: self._lines[index] if index < len(self._lines) else "",
                 None,
@@ -68,27 +64,22 @@ class Tray:
                 visible=lambda _item: index < len(self._lines),
             )
 
-        def text(key: str) -> str:
-            return phrase(key, self._language)
-
+        actions = self._actions
         return pystray.Menu(
-            *(line(index) for index in range(5)),
+            *(status_line(index) for index in range(_STATUS_LINES)),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem(text("menu_log"), lambda: self._submit(LogCigarette())),
+            pystray.MenuItem(label("menu_stats"), actions.show_stats, default=True),
+            pystray.MenuItem(label("menu_log"), actions.log_cigarette),
             pystray.MenuItem(
-                text("menu_pause"),
-                lambda: self._submit(Pause(_PAUSE)),
+                label("menu_pause"),
+                actions.pause,
                 visible=lambda _item: not self._paused,
             ),
             pystray.MenuItem(
-                text("menu_resume"),
-                lambda: self._submit(Resume()),
+                label("menu_resume"),
+                actions.resume,
                 visible=lambda _item: self._paused,
             ),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem(text("menu_quit"), self._quit),
+            pystray.MenuItem(label("menu_quit"), actions.quit),
         )
-
-    def _quit(self) -> None:
-        self._submit(Stop())
-        self.stop()

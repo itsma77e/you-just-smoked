@@ -4,7 +4,12 @@ import pytest
 
 from you_just_smoked.domain.cues import Cue
 from you_just_smoked.domain.episode import Episode, Outcome
-from you_just_smoked.domain.stats import compute_stats, next_milestone
+from you_just_smoked.domain.stats import (
+    compute_stats,
+    milestone_progress,
+    next_milestone,
+    wait_goal,
+)
 
 from factories import at
 
@@ -62,8 +67,31 @@ def test_next_milestone(elapsed: timedelta, goal: timedelta) -> None:
     assert next_milestone(elapsed) == goal
 
 
-def test_older_last_cigarette_is_used_when_nothing_recent() -> None:
-    yesterday = at(minutes=-60 * 20)
-    stats = compute_stats([], now=at(0), session_start=at(0), last_cigarette_at=yesterday)
-    assert stats.last_cigarette_at == yesterday
-    assert stats.today == 0
+@pytest.mark.parametrize(
+    ("elapsed", "goal", "fraction"),
+    [
+        (timedelta(minutes=0), timedelta(minutes=15), 0.0),
+        (timedelta(minutes=45), timedelta(hours=1), 0.75),
+        (timedelta(minutes=54), timedelta(hours=1), 0.9),
+        (timedelta(hours=36), timedelta(hours=48), 0.75),
+    ],
+)
+def test_milestone_progress(elapsed: timedelta, goal: timedelta, fraction: float) -> None:
+    actual_goal, actual_fraction = milestone_progress(elapsed)
+    assert actual_goal == goal
+    assert actual_fraction == pytest.approx(fraction)
+
+
+@pytest.mark.parametrize(
+    ("elapsed", "goal"),
+    [
+        (timedelta(0), timedelta(minutes=15)),
+        (timedelta(minutes=16), timedelta(minutes=30)),
+        (timedelta(minutes=27), timedelta(minutes=45)),
+        (timedelta(minutes=55), timedelta(hours=1)),
+        (timedelta(minutes=57), timedelta(minutes=90)),
+        (timedelta(hours=23, minutes=58), timedelta(hours=48)),
+    ],
+)
+def test_wait_goal_is_at_least_the_minimum_away(elapsed: timedelta, goal: timedelta) -> None:
+    assert wait_goal(elapsed, timedelta(minutes=5)) == goal

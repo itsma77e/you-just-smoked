@@ -33,6 +33,22 @@ def test_open_hand_at_the_mouth_is_not_a_puff() -> None:
     assert PuffDetector().detect(blank_frame(), scene) == []
 
 
+def test_a_hand_resting_at_the_mouth_counts_once() -> None:
+    detector = PuffDetector()
+    resting = holding_at(*MOUTH)
+    assert detector.detect(blank_frame(), resting)
+    assert detector.detect(blank_frame(), resting) == []
+    assert detector.detect(blank_frame(), resting) == []
+
+
+def test_each_new_puff_counts_again() -> None:
+    detector = PuffDetector()
+    away = holding_at(0.9, 0.7)
+    for _ in range(3):
+        assert detector.detect(blank_frame(), holding_at(*MOUTH))
+        assert detector.detect(blank_frame(), away) == []
+
+
 def test_needs_a_face() -> None:
     scene = Scene(hands=holding_at(*MOUTH).hands)
     assert PuffDetector().detect(blank_frame(), scene) == []

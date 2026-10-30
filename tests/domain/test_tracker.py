@@ -107,7 +107,7 @@ def test_smoking_after_waiting_resumes_silently_and_records_the_delay() -> None:
     )
     assert not any(isinstance(event, EpisodeOpened) for event in events)
     [resumed] = [event for event in events if isinstance(event, EpisodeResumed)]
-    assert resumed.postponed_for == at(5, minutes=4) - at(10)
+    assert resumed.postponed_for == at(minutes=4) - at(10)
 
     [event] = closed(tracker.tick(at(5, minutes=10)))
     assert event.episode.outcome is Outcome.SMOKED

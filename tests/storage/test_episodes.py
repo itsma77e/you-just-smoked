@@ -29,28 +29,22 @@ def test_round_trips_every_field(repository: EpisodeRepository) -> None:
         postponed_for=timedelta(minutes=3, seconds=20),
     )
     repository.add(episode)
-    assert repository.ended_since(at(0)) == [episode]
+    assert repository.all() == [episode]
 
 
 def test_round_trips_a_manual_entry(repository: EpisodeRepository) -> None:
     episode = Episode(at(0), at(0), Outcome.SMOKED, trigger=None)
     repository.add(episode)
-    assert repository.ended_since(at(0)) == [episode]
+    assert repository.all() == [episode]
 
 
-def test_filters_by_end_time_across_time_zones(repository: EpisodeRepository) -> None:
+def test_lists_oldest_first_whatever_the_time_zone(repository: EpisodeRepository) -> None:
     rome = timezone(timedelta(hours=1))
-    repository.add(Episode(at(0), at(minutes=1), Outcome.SMOKED, Cue.FLAME))
-    repository.add(Episode(at(0), at(minutes=10), Outcome.SMOKED, Cue.FLAME))
-    since = at(minutes=5).astimezone(rome)
-    assert [e.ended_at for e in repository.ended_since(since)] == [at(minutes=10)]
-
-
-def test_last_cigarette_ignores_other_outcomes(repository: EpisodeRepository) -> None:
-    assert repository.last_cigarette_at() is None
-    repository.add(Episode(at(0), at(minutes=1), Outcome.SMOKED, Cue.FLAME))
-    repository.add(Episode(at(0), at(minutes=9), Outcome.RESISTED, Cue.FLAME))
-    assert repository.last_cigarette_at() == at(minutes=1)
+    later = Episode(at(0), at(minutes=10).astimezone(rome), Outcome.RESISTED, Cue.FLAME)
+    earlier = Episode(at(0), at(minutes=1), Outcome.SMOKED, Cue.FLAME)
+    repository.add(later)
+    repository.add(earlier)
+    assert [e.ended_at for e in repository.all()] == [at(minutes=1), at(minutes=10)]
 
 
 def test_rejects_naive_timestamps(repository: EpisodeRepository) -> None:

@@ -1,20 +1,12 @@
 from datetime import timedelta
 
-import pytest
-
 from you_just_smoked.domain.stats import Stats
-from you_just_smoked.notify.messages import (
-    LANGUAGES,
-    format_duration,
-    nudge_text,
-    phrase,
-    resolve_language,
-    status_lines,
-)
+from you_just_smoked.notify.messages import nudge_text, status_lines
 
 from factories import at
 
 NOW = at(0)
+FIVE = timedelta(minutes=5)
 
 
 def stats(
@@ -31,9 +23,10 @@ def stats(
 
 
 def test_nudge_mentions_time_since_last_count_and_next_goal() -> None:
-    text = nudge_text(stats(), NOW, "en")
+    text = nudge_text(stats(), NOW, "en", minimum_wait=FIVE)
     assert text.title == "Your last one was 47 min ago"
     assert text.body == "6 today. Can you make it to 1 h?"
+    assert text.wait_for == timedelta(minutes=13)
     assert (text.wait, text.smoking, text.false_alarm) == (
         "I'll wait",
         "Smoking anyway",
@@ -42,43 +35,24 @@ def test_nudge_mentions_time_since_last_count_and_next_goal() -> None:
 
 
 def test_nudge_in_italian() -> None:
-    text = nudge_text(stats(), NOW, "it")
+    text = nudge_text(stats(), NOW, "it", minimum_wait=FIVE)
     assert text.title == "L'ultima è stata 47 min fa"
     assert text.body == "Oggi sono 6. Arrivi a 1 h?"
 
 
 def test_nudge_when_nothing_is_logged_yet() -> None:
-    text = nudge_text(stats(minutes_ago=None, today=0), NOW, "en")
+    text = nudge_text(stats(minutes_ago=None, today=0), NOW, "en", minimum_wait=FIVE)
     assert text.title == "About to smoke?"
+    assert text.wait_for == timedelta(minutes=15)
+
+
+def test_goal_and_countdown_agree_when_the_next_goal_is_too_close() -> None:
+    text = nudge_text(stats(minutes_ago=57), NOW, "en", minimum_wait=FIVE)
+    assert text.body == "6 today. Can you make it to 1 h 30 min?"
+    assert text.wait_for == timedelta(minutes=33)
 
 
 def test_status_shows_wins_only_when_there_are_any() -> None:
     assert status_lines(stats(), NOW, "en") == ["Last: 47 min ago", "Today: 6"]
     lines = status_lines(stats(resisted=2, held_off=25), NOW, "en")
-    assert lines[2:] == ["Resisted: 2", "Held off: 25 min"]
-
-
-@pytest.mark.parametrize("language", LANGUAGES)
-def test_every_language_has_every_phrase(language: str) -> None:
-    for key in ("menu_log", "menu_pause", "menu_resume", "menu_quit", "status_paused"):
-        assert phrase(key, language)
-
-
-def test_explicit_language_wins_over_the_system_locale() -> None:
-    assert resolve_language("it") == "it"
-    assert resolve_language("auto") in LANGUAGES
-
-
-@pytest.mark.parametrize(
-    ("duration", "text"),
-    [
-        (timedelta(seconds=59), "0 min"),
-        (timedelta(minutes=45), "45 min"),
-        (timedelta(hours=1), "1 h"),
-        (timedelta(hours=1, minutes=20), "1 h 20 min"),
-        (timedelta(days=2), "2 d"),
-        (timedelta(days=2, hours=3, minutes=10), "2 d 3 h"),
-    ],
-)
-def test_format_duration(duration: timedelta, text: str) -> None:
-    assert format_duration(duration) == text
+    assert lines[2:] == ["Skipped: 2", "Time gained: 25 min"]

@@ -28,19 +28,10 @@ class Stats:
         return max(now - self.last_cigarette_at, timedelta(0))
 
 
-def compute_stats(
-    episodes: Iterable[Episode],
-    *,
-    now: datetime,
-    session_start: datetime,
-    last_cigarette_at: datetime | None = None,
-) -> Stats:
-    """Summarise recent episodes. `now` must be timezone-aware; "today" is its calendar day.
-
-    `last_cigarette_at` covers cigarettes older than the episodes passed in.
-    """
+def compute_stats(episodes: Iterable[Episode], *, now: datetime, session_start: datetime) -> Stats:
+    """Summarise the history. `now` must be timezone-aware; "today" is its calendar day."""
     today = now.date()
-    last = last_cigarette_at
+    last: datetime | None = None
     smoked_today = smoked_in_session = resisted_today = 0
     held_off = timedelta(0)
 
@@ -67,3 +58,25 @@ def next_milestone(elapsed: timedelta) -> timedelta:
         if milestone > elapsed:
             return milestone
     return _MILESTONES[-1] * (elapsed // _MILESTONES[-1] + 1)
+
+
+def wait_goal(elapsed: timedelta, minimum: timedelta) -> timedelta:
+    """The first round goal at least `minimum` away: 16 min with a 5 min minimum -> 30 min.
+
+    The nudge offers this goal and the wait challenge counts down to it, so the two
+    always agree.
+    """
+    for milestone in _MILESTONES:
+        if milestone - elapsed >= minimum:
+            return milestone
+    step = _MILESTONES[-1]
+    goal = step * (elapsed // step + 1)
+    while goal - elapsed < minimum:
+        goal += step
+    return goal
+
+
+def milestone_progress(elapsed: timedelta) -> tuple[timedelta, float]:
+    """The next goal and how much of it is done, in [0, 1): 45 min of 1 h is 0.75."""
+    goal = next_milestone(elapsed)
+    return goal, elapsed / goal

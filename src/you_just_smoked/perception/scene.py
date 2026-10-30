@@ -74,3 +74,14 @@ class Scene:
     @property
     def someone_visible(self) -> bool:
         return self.face is not None or bool(self.hands)
+
+    def hand_near_face(self, reach: float = 1.5) -> bool:
+        """A fingertip within `reach` face widths of the mouth: something may be about to happen."""
+        face = self.face
+        if face is None:
+            return False
+        return any(
+            tip.distance_to(face.mouth) <= reach * face.scale
+            for hand in self.hands
+            for tip in hand.grip_tips()
+        )

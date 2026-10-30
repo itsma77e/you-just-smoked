@@ -1,6 +1,7 @@
 """A live debug window: what the camera sees, the landmarks, the cues and the tracker state.
 
 Use it to check your camera framing and to tune thresholds. Nothing is saved.
+Press r to reset the tracker and try again, q to quit.
 """
 
 from __future__ import annotations
@@ -12,11 +13,13 @@ import numpy as np
 
 from you_just_smoked.app.bootstrap import build_perception
 from you_just_smoked.capture.camera import OpenCVCamera
-from you_just_smoked.domain.tracker import EpisodeTracker
+from you_just_smoked.domain.tracker import EpisodeTracker, Phase
 from you_just_smoked.perception.frame import Frame
 from you_just_smoked.runtime.clock import SystemClock
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from numpy.typing import NDArray
 
     from you_just_smoked.app.config import Config
@@ -24,7 +27,7 @@ if TYPE_CHECKING:
     from you_just_smoked.perception.pipeline import Perception
     from you_just_smoked.perception.scene import Point
 
-_WINDOW = "you-just-smoked preview (press q to quit)"
+_WINDOW = "you-just-smoked preview (r: reset, q: quit)"
 _GREEN = (80, 220, 120)
 _ORANGE = (40, 140, 255)
 _WHITE = (255, 255, 255)
@@ -37,18 +40,32 @@ def run_preview(config: Config, paths: AppPaths) -> None:
     perception_pipeline = build_perception(config, paths)
     try:
         camera.open()
-        while cv2.waitKey(1) & 0xFF != ord("q"):
+        while (key := cv2.waitKey(1) & 0xFF) != ord("q"):
+            if key == ord("r"):
+                tracker = EpisodeTracker(config.tracker)
             frame = Frame(camera.read(), clock.now())
             perception = perception_pipeline.perceive(frame)
             tracker.tick(frame.at)
             for observation in perception.observations:
                 tracker.observe(observation)
-            status = f"{tracker.phase} | suspicion {tracker.suspicion(frame.at):.2f}"
-            cv2.imshow(_WINDOW, _draw(frame, perception, status))
+            cv2.imshow(_WINDOW, _draw(frame, perception, _describe(tracker, frame.at)))
     finally:
         camera.close()
         perception_pipeline.close()
         cv2.destroyAllWindows()
+
+
+def _describe(tracker: EpisodeTracker, at: datetime) -> str:
+    """The tracker state in plain words, including whether the app would nudge now."""
+    match tracker.phase:
+        case Phase.IDLE:
+            return f"watching | evidence {tracker.suspicion(at):.0%} of a nudge"
+        case Phase.ACTIVE:
+            return "EPISODE OPEN: the app shows the nudge here | r: reset"
+        case Phase.POSTPONED:
+            return f"waiting (postponed) | relapse {tracker.suspicion(at):.0%}"
+        case Phase.REFRACTORY:
+            return "just ended: cues ignored for a few minutes | r: reset"
 
 
 def _draw(frame: Frame, perception: Perception, status: str) -> NDArray[np.uint8]:

@@ -41,22 +41,31 @@ class SamplingSettings:
     away_after: int = 3
     """Consecutive empty snapshots before assuming nobody is at the desk."""
 
+    attention: timedelta = timedelta(seconds=20)
+    """How long to stream after a hand comes near the face, so lighting up is not missed."""
 
-def plan_sampling(
-    phase: Phase,
-    suspicion: float,
-    *,
-    paused: bool,
-    away: bool,
-    settings: SamplingSettings,
-) -> SamplingPlan:
-    if paused or phase is Phase.REFRACTORY:
+
+@dataclass(frozen=True, slots=True)
+class Situation:
+    """What the engine knows right now that matters for when to look next."""
+
+    phase: Phase
+    suspicion: float
+    paused: bool = False
+    away: bool = False
+    attentive: bool = False
+    """A hand came near the face recently."""
+
+
+def plan_sampling(now: Situation, settings: SamplingSettings) -> SamplingPlan:
+    if now.paused or now.phase is Phase.REFRACTORY:
         return SamplingPlan(CaptureMode.OFF, settings.active_interval)
-    if suspicion >= settings.stream_above:
+    watching = now.phase in (Phase.IDLE, Phase.POSTPONED)
+    if now.suspicion >= settings.stream_above or (now.attentive and watching):
         return SamplingPlan(CaptureMode.STREAM, settings.stream_interval)
-    if phase in (Phase.ACTIVE, Phase.POSTPONED):
+    if now.phase in (Phase.ACTIVE, Phase.POSTPONED):
         return SamplingPlan(CaptureMode.SNAPSHOT, settings.active_interval)
-    if away:
+    if now.away:
         return SamplingPlan(CaptureMode.SNAPSHOT, settings.away_interval)
     return SamplingPlan(CaptureMode.SNAPSHOT, settings.idle_interval)
 
