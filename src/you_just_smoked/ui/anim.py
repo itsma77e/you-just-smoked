@@ -38,15 +38,9 @@ class Tween:
         self._done = done
         self._ease = ease
         self._start = time.perf_counter()
-        self._cancelled = False
         self._frame()
 
-    def cancel(self) -> None:
-        self._cancelled = True
-
     def _frame(self) -> None:
-        if self._cancelled:
-            return
         progress = min((time.perf_counter() - self._start) / self._duration, 1.0)
         self._step(self._ease(progress))
         if progress < 1.0:

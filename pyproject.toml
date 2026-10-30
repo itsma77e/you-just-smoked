@@ -15,9 +15,8 @@ keywords = ["quit-smoking", "computer-vision", "mediapipe", "habit-tracking", "p
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Win32 (MS Windows)",
-    "Environment :: MacOS X",
     "Intended Audience :: End Users/Desktop",
-    "Operating System :: OS Independent",
+    "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Image Recognition",
     "Typing :: Typed",

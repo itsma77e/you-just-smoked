@@ -211,9 +211,9 @@ class NudgePopup:
         self._surface.text("party-body", 16, 90, text("celebrate_body", self._language), _BODY)
         stats, more = self._actions.show_stats, lambda: self._start_countdown(_EXTRA_S)
         for tag, box, style, key, action in (
-            ("count-hide", Box(16, 156, 96, 32), SECONDARY, "challenge_hide", self._fold),
-            ("count-stats", Box(120, 156, 112, 32), SECONDARY, "stats_button", stats),
-            ("count-smoke", Box(240, 156, _W - 256, 32), QUIET, "smoking", self._hide),
+            ("count-hide", Box(16, 156, 88, 32), SECONDARY, "challenge_hide", self._fold),
+            ("count-stats", Box(112, 156, 96, 32), SECONDARY, "stats_button", stats),
+            ("count-smoke", Box(216, 156, _W - 232, 32), QUIET, "smoking", self._hide),
             ("party-more", Box(16, 156, _HALF, 32), PRIMARY, "celebrate_more", more),
             (
                 "party-done",
