@@ -21,7 +21,7 @@ from you_just_smoked.i18n import text
 from you_just_smoked.notify.messages import status_lines
 from you_just_smoked.runtime.commands import Command, LogCigarette, Pause, Resume, Stop
 from you_just_smoked.ui import sound, theme
-from you_just_smoked.ui.nudge import NudgePopup
+from you_just_smoked.ui.nudge import NudgePopup, PopupActions
 from you_just_smoked.ui.shell import enable_dpi_awareness, scale_factor, work_area
 from you_just_smoked.ui.sound import Chime
 from you_just_smoked.ui.tray import Tray, TrayActions
@@ -72,6 +72,7 @@ class UiSettings:
     language: str
     positions: PositionStore
     sound: bool = True
+    computer_day: timedelta = timedelta(hours=8)
 
 
 class TkNotifier:
@@ -114,7 +115,12 @@ class UiApp:
             moved=positions.save,
         )
         self._widget = Widget(self._root, widget_actions, language, positions.load())
-        self._popup = NudgePopup(self._root, language, self._popup_anchor, self._chime)
+        popup_actions = PopupActions(
+            chime=self._chime,
+            show_stats=self._show_stats,
+            computer_day=self._settings.computer_day,
+        )
+        self._popup = NudgePopup(self._root, language, self._popup_anchor, popup_actions)
         self._menu = tk.Menu(self._root, tearoff=0)
         self._tray = Tray(self._settings.name, self._tray_actions(), language)
         self._tray.start()
@@ -177,7 +183,7 @@ class UiApp:
         try:
             if self._widget.visible:
                 self._widget.tick(self._clock.now())
-            self._popup.tick()
+            self._popup.tick(self._clock.now())
         except Exception:
             log.exception("Could not refresh the interface")
         self._root.after(_TICK_MS, self._tick)
@@ -191,6 +197,11 @@ class UiApp:
         area = work_area(self._root)
         margin = round(theme.MARGIN * scale_factor(self._root))
         return area.right - margin, area.bottom - margin
+
+    def _show_stats(self) -> None:
+        self._widget.set_visible(True)
+        if not self._widget.expanded:
+            self._widget.toggle()
 
     def _chime(self, chime: Chime) -> None:
         if self._settings.sound:

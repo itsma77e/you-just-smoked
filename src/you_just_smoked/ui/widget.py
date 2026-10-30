@@ -217,6 +217,11 @@ class Widget:
                 f"glyph-{index}", centre_x, centre_y, badge.glyph, glyph, groups=group
             )
         self._badge_caption(None)
+        streak = self._status.summary.streak
+        line = text(
+            "companion_streak", self._language, count=streak.current, jollies=streak.jollies
+        )
+        self._surface.text("streak", _W - 16, 292, line, replace(MUTED, anchor="ne"))
 
     def _caption_handler(self, name: str | None) -> Callable[[tk.Event[tk.Canvas]], None]:
         return lambda _event: self._badge_caption(name)

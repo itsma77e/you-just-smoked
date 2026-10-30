@@ -80,6 +80,8 @@ class Engine:
         self._attentive_until: datetime | None = None
         self._camera_error: str | None = None
         self._history = deps.episodes.all()
+        self._offered_waits: dict[datetime, timedelta] = {}
+        """The wait each open nudge offered, keyed by episode start, until it is answered."""
         """In-memory mirror of the log; it only changes when an episode closes."""
 
     def submit(self, command: Command) -> None:
@@ -131,7 +133,9 @@ class Engine:
             case Resume():
                 self._paused_until = None
             case AnswerNudge(episode_started_at=started_at, answer=answer):
-                self._handle(self._tracker.answer(started_at, answer, now))
+                target = self._offered_waits.pop(started_at, None)
+                events = self._tracker.answer(started_at, answer, now, wait_target=target)
+                self._handle(events)
             case Stop():
                 return False
         self._publish()
@@ -200,6 +204,7 @@ class Engine:
         now = self._deps.clock.now()
         stats = self._summary(now).stats
         text = nudge_text(stats, now, self._deps.language, window=self._deps.wait)
+        self._offered_waits = {started_at: text.wait_for}
 
         def on_answer(answer: Answer) -> None:
             self.submit(AnswerNudge(started_at, answer))

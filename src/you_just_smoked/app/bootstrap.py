@@ -13,6 +13,7 @@ import queue
 import threading
 from contextlib import ExitStack
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from you_just_smoked.app.paths import APP_NAME
@@ -63,7 +64,13 @@ def run_app(config: Config, paths: AppPaths) -> None:
     language = resolve_language(config.language)
     commands: queue.Queue[Command] = queue.Queue()
     positions = PositionStore(paths.widget_position)
-    settings = UiSettings(APP_NAME, language, positions, sound=config.sound)
+    settings = UiSettings(
+        APP_NAME,
+        language,
+        positions,
+        sound=config.sound,
+        computer_day=timedelta(hours=config.computer_hours),
+    )
     ui = UiApp(commands.put, settings, SystemClock())
     shared = _Shared(
         language,

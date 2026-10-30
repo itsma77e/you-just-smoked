@@ -53,6 +53,7 @@ class _OpenEpisode:
     answer: Answer | None = None
     postponed_at: datetime | None = None
     postponed_for: timedelta | None = None
+    wait_target: timedelta | None = None
 
 
 class EpisodeTracker:
@@ -116,14 +117,25 @@ class EpisodeTracker:
                 pass
         return []
 
-    def answer(self, started_at: datetime, answer: Answer, now: datetime) -> list[TrackerEvent]:
-        """Apply the user's reply to the nudge. Stale or repeated replies are ignored."""
+    def answer(
+        self,
+        started_at: datetime,
+        answer: Answer,
+        now: datetime,
+        *,
+        wait_target: timedelta | None = None,
+    ) -> list[TrackerEvent]:
+        """Apply the user's reply to the nudge. Stale or repeated replies are ignored.
+
+        `wait_target` is the wait the nudge offered, recorded when the user accepts it.
+        """
         episode = self._open
         if episode is None or episode.started_at != started_at or episode.answer is not None:
             return []
         episode.answer = answer
         match answer:
             case Answer.WAIT:
+                episode.wait_target = wait_target
                 episode.postponed_at = now
                 episode.last_cue_at = now
                 self._relapse.reset()
@@ -180,6 +192,7 @@ class EpisodeTracker:
             trigger=self._open.trigger,
             answer=self._open.answer,
             postponed_for=self._open.postponed_for,
+            wait_target=self._open.wait_target,
         )
         if outcome is Outcome.RESISTED:
             self._enter_idle()

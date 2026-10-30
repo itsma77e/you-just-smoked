@@ -18,6 +18,12 @@ Nothing, while you work. There is only a small icon by the clock.
   - how many you have had today;
   - the choice between **I'll wait**, **Smoking anyway** and **Not smoking**.
 - **I'll wait** turns the card into a countdown to the goal it offered ("16 min ago, can you make it to 30?" counts down 14 minutes; never more than 25), with small tips: a glass of water, three deep breaths...
+  - **While you wait** it keeps you company, cycling through:
+    - your streak of waits seen through, and the jollies it earned;
+    - the next badge within reach ("One hour clear in 6 min");
+    - today against yesterday by this time;
+    - the pace: "Smoking now: ~30 in 8 h at the PC. Waiting to 30 min: ~16."
+  - **Stats** opens the statistics card without stopping the countdown.
   - **Hide** folds it into a small tab on the screen edge that keeps showing the time left. Click the tab to open it again.
   - When time is up it chimes, comes back by itself and celebrates the minutes you gained.
 - **The tray icon** shows today's numbers. From its menu you can:
@@ -25,6 +31,9 @@ Nothing, while you work. There is only a small icon by the clock.
   - log a cigarette it missed;
   - pause it for an hour;
   - quit.
+- **Streak and jollies:**
+  - every wait you see through adds to your streak, and every third earns a jolly;
+  - smoking during a wait spends a jolly instead of breaking the streak.
 - **Achievements:** first wait, first one skipped, one hour clear, two hours clear, 30 minutes gained, three skipped in a day, fewer than the day before.
 
 ## How it works

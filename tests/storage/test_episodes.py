@@ -27,6 +27,7 @@ def test_round_trips_every_field(repository: EpisodeRepository) -> None:
         trigger=Cue.ROLLING,
         answer=Answer.WAIT,
         postponed_for=timedelta(minutes=3, seconds=20),
+        wait_target=timedelta(minutes=14),
     )
     repository.add(episode)
     assert repository.all() == [episode]
@@ -57,5 +58,5 @@ def test_migrations_are_idempotent(tmp_path: Path) -> None:
     path = tmp_path / "episodes.sqlite3"
     connect(path).close()
     connection = connect(path)
-    assert connection.execute("PRAGMA user_version").fetchone() == (1,)
+    assert connection.execute("PRAGMA user_version").fetchone() == (2,)
     connection.close()

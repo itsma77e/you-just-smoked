@@ -8,9 +8,11 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from you_just_smoked.domain.achievements import Badge
+from you_just_smoked.domain.pace import pace
+from you_just_smoked.domain.progress import BadgeProgress, Unit
 from you_just_smoked.domain.stats import milestone_progress
 from you_just_smoked.domain.tracker import Phase
-from you_just_smoked.i18n import format_duration, text
+from you_just_smoked.i18n import TIP_COUNT, format_duration, text
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -98,6 +100,63 @@ def format_timer(elapsed: timedelta) -> str:
     hours, rest = divmod(seconds, 3600)
     minutes, seconds = divmod(rest, 60)
     return f"{hours}:{minutes:02}:{seconds:02}" if hours else f"{minutes}:{seconds:02}"
+
+
+def companion_lines(
+    summary: Summary,
+    now: datetime,
+    language: str,
+    goal: timedelta | None,
+    computer_day: timedelta,
+) -> list[str]:
+    """What the countdown cycles through: streak, the next badge, today, the pace, tips."""
+    lines = [_streak_line(summary, language)]
+    if summary.next_badges:
+        lines.append(_badge_line(summary.next_badges[0], language))
+    stats = summary.stats
+    lines.append(
+        text("companion_today", language, today=stats.today, yesterday=summary.yesterday_by_now)
+    )
+    elapsed = stats.since_last(now)
+    if elapsed is not None and goal is not None:
+        rhythm = pace(elapsed, goal, computer_day)
+        if rhythm is not None:
+            hours = round(computer_day / timedelta(hours=1))
+            lines.append(
+                text(
+                    "companion_pace",
+                    language,
+                    now=rhythm.if_now,
+                    hours=hours,
+                    goal=format_duration(goal),
+                    later=rhythm.if_waiting,
+                )
+            )
+    return lines + [text(f"tip_{index}", language) for index in range(TIP_COUNT)]
+
+
+def celebration_line(summary: Summary, language: str) -> str:
+    """The streak this success leads to, and a jolly if it earns one."""
+    before = summary.streak
+    after = before.after(succeeded=True)
+    line = text("celebrate_streak", language, count=after.current)
+    if after.jollies > before.jollies:
+        line += " · " + text("celebrate_jolly", language)
+    return line
+
+
+def _streak_line(summary: Summary, language: str) -> str:
+    streak = summary.streak
+    if not streak.current and not streak.jollies:
+        return text("companion_streak_start", language)
+    line = text("companion_streak", language, count=streak.current, jollies=streak.jollies)
+    return line + "\n" + text("companion_jolly", language, count=streak.to_next_jolly)
+
+
+def _badge_line(progress: BadgeProgress, language: str) -> str:
+    name = text(f"badge_{progress.badge.value}", language)
+    key = "companion_badge_minutes" if progress.unit is Unit.MINUTES else "companion_badge_times"
+    return text(key, language, name=name, count=progress.remaining)
 
 
 def week_view(summary: Summary, language: str) -> list[BarView]:

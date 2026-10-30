@@ -38,6 +38,18 @@ class Episode:
     postponed_for: timedelta | None = None
     """How long the user held off after choosing to wait, if they then smoked."""
 
+    wait_target: timedelta | None = None
+    """The wait the user accepted ("make it to 30 min" from 16 min is 14 min)."""
+
     @property
     def counts_as_cigarette(self) -> bool:
         return self.outcome is Outcome.SMOKED
+
+    @property
+    def wait_succeeded(self) -> bool | None:
+        """Whether an accepted wait was seen through; None if no wait was accepted."""
+        if self.answer is not Answer.WAIT or self.wait_target is None:
+            return None
+        if self.outcome is Outcome.RESISTED:
+            return True
+        return self.postponed_for is not None and self.postponed_for >= self.wait_target

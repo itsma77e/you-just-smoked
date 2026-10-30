@@ -21,6 +21,9 @@ _MIGRATIONS: tuple[str, ...] = (
     );
     CREATE INDEX episodes_ended_at ON episodes (ended_at);
     """,
+    """
+    ALTER TABLE episodes ADD COLUMN wait_target_seconds REAL;
+    """,
 )
 
 

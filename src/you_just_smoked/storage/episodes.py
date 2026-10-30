@@ -11,7 +11,7 @@ from you_just_smoked.domain.episode import Answer, Episode, Outcome
 if TYPE_CHECKING:
     import sqlite3
 
-_COLUMNS = "started_at, ended_at, outcome, trigger, answer, postponed_seconds"
+_COLUMNS = "started_at, ended_at, outcome, trigger, answer, postponed_seconds, wait_target_seconds"
 
 
 class EpisodeRepository:
@@ -19,17 +19,17 @@ class EpisodeRepository:
         self._db = connection
 
     def add(self, episode: Episode) -> None:
-        postponed = episode.postponed_for.total_seconds() if episode.postponed_for else None
         with self._db:
             self._db.execute(
-                f"INSERT INTO episodes ({_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?)",
+                f"INSERT INTO episodes ({_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     _encode(episode.started_at),
                     _encode(episode.ended_at),
                     episode.outcome.value,
                     episode.trigger.value if episode.trigger else None,
                     episode.answer.value if episode.answer else None,
-                    postponed,
+                    _seconds(episode.postponed_for),
+                    _seconds(episode.wait_target),
                 ),
             )
 
@@ -44,17 +44,29 @@ def _encode(moment: datetime) -> str:
     return moment.astimezone(UTC).isoformat(timespec="milliseconds")
 
 
+def _seconds(duration: timedelta | None) -> float | None:
+    return duration.total_seconds() if duration is not None else None
+
+
+def _duration(seconds: float | None) -> timedelta | None:
+    return timedelta(seconds=seconds) if seconds is not None else None
+
+
 def _decode(value: str) -> datetime:
     return datetime.fromisoformat(value)
 
 
-def _decode_row(row: tuple[str, str, str, str | None, str | None, float | None]) -> Episode:
-    started, ended, outcome, trigger, answer, postponed = row
+_Row = tuple[str, str, str, str | None, str | None, float | None, float | None]
+
+
+def _decode_row(row: _Row) -> Episode:
+    started, ended, outcome, trigger, answer, postponed, target = row
     return Episode(
         started_at=_decode(started),
         ended_at=_decode(ended),
         outcome=Outcome(outcome),
         trigger=Cue(trigger) if trigger else None,
         answer=Answer(answer) if answer else None,
-        postponed_for=timedelta(seconds=postponed) if postponed is not None else None,
+        postponed_for=_duration(postponed),
+        wait_target=_duration(target),
     )

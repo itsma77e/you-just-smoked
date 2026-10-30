@@ -29,7 +29,8 @@ refractory_minutes = 5   # cues are ignored for this long after an episode
 [nudge]
 min_wait_minutes = 5   # the goal offered by the nudge is at least this far away...
 max_wait_minutes = 25  # ...and at most this far: long waits kill the will
-sound = true          # chime when the nudge appears and when the wait is over
+sound = true           # chime when the nudge appears and when the wait is over
+computer_hours = 8     # a day at the computer, for the "at this pace" line
 
 [objects]
 # model = "~/models/smoking-objects.tflite"

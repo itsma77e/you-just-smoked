@@ -25,6 +25,9 @@ class NudgeText:
     wait_for: timedelta
     """How long "I'll wait" counts down: exactly until the goal named in `body`."""
 
+    goal: timedelta | None = None
+    """That goal as time since the last cigarette; None when nothing is logged yet."""
+
 
 def nudge_text(stats: Stats, now: datetime, language: str, *, window: WaitWindow) -> NudgeText:
     elapsed = stats.since_last(now) or timedelta(0)
@@ -41,6 +44,7 @@ def nudge_text(stats: Stats, now: datetime, language: str, *, window: WaitWindow
         text("smoking", language),
         text("false_alarm", language),
         wait_for=goal - elapsed,
+        goal=goal if stats.last_cigarette_at is not None else None,
     )
 
 

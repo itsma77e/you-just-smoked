@@ -38,6 +38,8 @@ class Config:
     """How far away the goal offered by the nudge may be."""
 
     sound: bool = True
+    computer_hours: float = 8
+    """A typical day at the computer, for "at this pace: N in 8 h"."""
 
     objects: ObjectsConfig | None = None
 
@@ -80,6 +82,7 @@ def parse_config(data: dict[str, Any]) -> Config:
         ),
         wait=_wait_window(nudge),
         sound=nudge.get("sound", bool, True),
+        computer_hours=nudge.get("computer_hours", float, 8),
         objects=_objects(objects),
     )
     for table in (root, camera, sampling, episode, nudge, objects):

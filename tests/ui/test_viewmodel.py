@@ -11,6 +11,8 @@ from you_just_smoked.runtime.status import Status
 from you_just_smoked.ui.viewmodel import (
     Indicator,
     badge_views,
+    celebration_line,
+    companion_lines,
     format_timer,
     new_badges,
     week_view,
@@ -93,3 +95,38 @@ def test_new_badges_only_reports_fresh_unlocks() -> None:
     after = status(smoked(-30), smoked(-5, Answer.WAIT)).summary
     assert new_badges(None, after) == []
     assert new_badges(before, after) == [Badge.FIRST_WAIT]
+
+
+def waited(minutes: float, held_for: float) -> Episode:
+    moment = at(minutes=minutes)
+    return Episode(
+        moment,
+        moment,
+        Outcome.SMOKED,
+        Cue.FLAME,
+        answer=Answer.WAIT,
+        postponed_for=timedelta(minutes=held_for),
+        wait_target=timedelta(minutes=10),
+    )
+
+
+def test_companion_lines_cover_streak_badge_today_pace_and_tips() -> None:
+    summary = status(waited(-300, 12), waited(-200, 12), smoked(-16)).summary
+    lines = companion_lines(summary, NOW, "it", timedelta(minutes=30), timedelta(hours=8))
+    assert lines[0] == "Serie: 2 attese · jolly: 0\nAttese al prossimo jolly: 1"
+    assert lines[1] == "30 minuti guadagnati tra 6 min"
+    assert "Oggi 3 · ieri a quest'ora 0" in lines
+    assert "Fumando ora: ~30 in 8 h al PC. Arrivando a 30 min: ~16." in lines
+    assert lines[-1] == "Prima finisci quello che stai facendo."
+
+
+def test_companion_invites_to_start_a_streak() -> None:
+    lines = companion_lines(status(smoked(-16)).summary, NOW, "en", None, timedelta(hours=8))
+    assert lines[0] == "See this one through to start a streak."
+    assert not any(line.startswith("Smoking now") for line in lines)
+
+
+def test_the_third_success_earns_a_jolly_in_the_celebration() -> None:
+    two = status(waited(-300, 12), waited(-200, 12)).summary
+    assert celebration_line(two, "en") == "Streak: 3 · +1 jolly!"
+    assert celebration_line(status().summary, "en") == "Streak: 1"

@@ -22,6 +22,17 @@ STRINGS: dict[str, str] = {
     "tip_3": "Mastica una gomma o qualcosa di croccante.",
     "tip_4": "La voglia sale e passa in pochi minuti.",
     "tip_5": "Prima finisci quello che stai facendo.",
+    # Wait companion
+    "stats_button": "Statistiche",
+    "companion_streak": "Serie: {count} attese · jolly: {jollies}",
+    "companion_streak_start": "Arriva in fondo e inizi una serie.",
+    "companion_jolly": "Attese al prossimo jolly: {count}",
+    "companion_badge_minutes": "{name} tra {count} min",
+    "companion_badge_times": "{name}: ne mancano {count}",
+    "companion_today": "Oggi {today} · ieri a quest'ora {yesterday}",
+    "companion_pace": "Fumando ora: ~{now} in {hours} h al PC. Arrivando a {goal}: ~{later}.",
+    "celebrate_streak": "Serie: {count}",
+    "celebrate_jolly": "+1 jolly!",
     # Widget
     "since_last": "dall'ultima",
     "no_last": "ancora nessuna registrata",

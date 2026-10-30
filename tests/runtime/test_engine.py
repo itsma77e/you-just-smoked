@@ -100,6 +100,18 @@ def test_a_single_flame_opens_the_episode(harness: Harness) -> None:
     assert len(harness.notifier.nudges) == 1
 
 
+def test_the_accepted_wait_is_stored_with_the_episode(harness: Harness) -> None:
+    harness.step(Cue.FLAME)
+    harness.notifier.answer_last(Answer.WAIT)
+    harness.engine.process_pending()
+    offered = harness.notifier.nudges[-1][0].wait_for
+    harness.clock.advance(7 * 60)
+    harness.step()
+    [episode] = harness.episodes.episodes
+    assert episode.wait_target == offered
+    assert episode.wait_succeeded
+
+
 def test_answering_wait_postpones_the_episode(harness: Harness) -> None:
     harness.step(Cue.FLAME)
     harness.step(Cue.LIGHTER)
